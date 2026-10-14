@@ -23,36 +23,41 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Inspect files before generation
+        run: |
+          echo "=== Test files before flutter create ==="
+          find test -maxdepth 3 -type f -print 2>/dev/null || true
+
+          echo "=== Git tracked test files ==="
+          git ls-files test
+
+          echo "=== Project name ==="
+          grep -n "^name:" pubspec.yaml || true
+
       - name: Generate Android platform files
         run: flutter create --platforms=android .
 
-      - name: Inspect test files
+      - name: Inspect files after generation
         run: |
-          echo "=== Test files before analysis ==="
-          find test -maxdepth 3 -type f -print
+          echo "=== Test files after flutter create ==="
+          find test -maxdepth 3 -type f -print 2>/dev/null || true
+
           echo "=== Search for MyApp references ==="
           grep -RIn "MyApp" test lib || true
-      
-      - name: Verify Android project
-        run: |
+
+          echo "=== Main entry point ==="
+          sed -n '1,160p' lib/main.dart
+
+          echo "=== Android project files ==="
           ls -la android
           ls -la android/app
 
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Debug project files
-        run: |
-          echo "=== Test files ==="
-          find test -maxdepth 3 -type f 2>/dev/null || true
-          echo "=== Main app ==="
-          sed -n '1,120p' lib/main.dart
-          echo "=== Git status ==="
-          git status --short
-
       - name: Analyze
         run: flutter analyze
-        
+
       - name: Test
         run: flutter test
 
