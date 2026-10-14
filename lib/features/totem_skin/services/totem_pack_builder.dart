@@ -3,8 +3,8 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:image/image.dart' as img;
-import '../../core/minecraft/manifest_generator.dart';
-import '../../core/validation/pack_validator.dart';
+import '../../../../core/minecraft/manifest_generator.dart';
+import '../../../../core/validation/pack_validator.dart';
 import '../models/totem_pack_config.dart';
 
 class PackBuildResult {
