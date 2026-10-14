@@ -32,7 +32,7 @@ jobs:
           find test -maxdepth 3 -type f -print
           echo "=== Search for MyApp references ==="
           grep -RIn "MyApp" test lib || true
-          
+      
       - name: Verify Android project
         run: |
           ls -la android
