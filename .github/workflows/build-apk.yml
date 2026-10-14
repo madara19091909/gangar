@@ -1,3 +1,4 @@
+
 name: Build Flutter APK
 
 on:
@@ -11,6 +12,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -20,6 +22,14 @@ jobs:
         with:
           channel: stable
           cache: true
+
+      - name: Generate Android platform files
+        run: flutter create --platforms=android .
+
+      - name: Verify Android project
+        run: |
+          ls -la android
+          ls -la android/app
 
       - name: Install dependencies
         run: flutter pub get
