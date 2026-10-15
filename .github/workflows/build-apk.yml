@@ -1,51 +1,106 @@
 name: Build Flutter APK
 
 on:
-  push:
-    branches: [main, master]
-  workflow_dispatch:
+push:
+branches: [main, master]
+workflow_dispatch:
 
 permissions:
-  contents: read
+contents: read
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+build:
+runs-on: ubuntu-latest
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
+steps:
+  - name: Checkout
+    uses: actions/checkout@v4
 
-      - name: Generate Android platform files
-        run: flutter create --platforms=android .
+  - name: Set up Flutter
+    uses: subosito/flutter-action@v2
+    with:
+      channel: stable
+      cache: true
 
-      - name: Remove incompatible generated widget test
-        run: |
-          if [ -f test/widget_test.dart ] && ! git ls-files --error-unmatch test/widget_test.dart >/dev/null 2>&1; then
-            rm test/widget_test.dart
-          fi
+  - name: Generate Android platform files
+    run: flutter create --platforms=android .
 
-      - name: Install dependencies
-        run: flutter pub get
+  - name: Remove incompatible generated widget test
+    run: |
+      if [ -f test/widget_test.dart ] && \
+         ! git ls-files --error-unmatch test/widget_test.dart >/dev/null 2>&1; then
+        rm test/widget_test.dart
+      fi
 
-      - name: Analyze
-        run: flutter analyze
+  - name: Install dependencies
+    run: flutter pub get
 
-      - name: Test
-        run: flutter test
+  - name: Analyze
+    run: flutter analyze
 
-      - name: Build APK
-        run: flutter build apk --release
+  - name: Test
+    run: flutter test
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: bedrock-tools-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: error
-          retention-days: 14
+  - name: Build APK
+    run: flutter build apk --release
+
+  - name: Validate APK
+    shell: bash
+    run: |
+      set -euo pipefail
+
+      APK="build/app/outputs/flutter-apk/app-release.apk"
+
+      if [ ! -s "$APK" ]; then
+        echo "ERROR: APK is missing or empty."
+        exit 1
+      fi
+
+      echo "APK file information:"
+      ls -lh "$APK"
+      file "$APK"
+      sha256sum "$APK"
+
+      echo "Checking APK ZIP integrity..."
+      unzip -t "$APK"
+
+      echo "Checking required APK files..."
+      python3 - "$APK" <<'PY'
+      import sys
+      import zipfile
+
+      apk = sys.argv[1]
+
+      try:
+          with zipfile.ZipFile(apk, "r") as archive:
+              bad = archive.testzip()
+              if bad:
+                  raise RuntimeError(f"Corrupted entry: {bad}")
+
+              names = set(archive.namelist())
+              required = {
+                  "AndroidManifest.xml",
+                  "classes.dex",
+              }
+              missing = required - names
+
+              if missing:
+                  raise RuntimeError(
+                      f"Missing required APK entries: {sorted(missing)}"
+                  )
+
+              print(f"ZIP integrity: OK ({len(names)} entries)")
+              print("Required APK entries: OK")
+
+      except Exception as exc:
+          print(f"APK VALIDATION FAILED: {exc}", file=sys.stderr)
+          sys.exit(1)
+      PY
+
+  - name: Upload APK
+    uses: actions/upload-artifact@v4
+    with:
+      name: bedrock-tools-apk
+      path: build/app/outputs/flutter-apk/app-release.apk
+      if-no-files-found: error
+      retention-days: 14
