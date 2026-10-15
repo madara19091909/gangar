@@ -292,7 +292,6 @@ class _TotemSkinScreenState extends State<TotemSkinScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final direction = Directionality.of(context);
 
     return Scaffold(
       appBar: AppBar(
