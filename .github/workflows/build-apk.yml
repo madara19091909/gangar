@@ -1,4 +1,3 @@
-
 name: Build Flutter APK
 
 on:
@@ -12,7 +11,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,41 +21,14 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Inspect files before generation
-        run: |
-          echo "=== Test files before flutter create ==="
-          find test -maxdepth 3 -type f -print 2>/dev/null || true
-
-          echo "=== Git tracked test files ==="
-          git ls-files test
-
-          echo "=== Project name ==="
-          grep -n "^name:" pubspec.yaml || true
-
       - name: Generate Android platform files
         run: flutter create --platforms=android .
 
-      - name: Remove incompatible default widget test
+      - name: Remove incompatible generated widget test
         run: |
-          if [ -f test/widget_test.dart ]; then
-            echo "Removing incompatible default widget test"
+          if [ -f test/widget_test.dart ] && ! git ls-files --error-unmatch test/widget_test.dart >/dev/null 2>&1; then
             rm test/widget_test.dart
           fi
-      
-      - name: Inspect files after generation
-        run: |
-          echo "=== Test files after flutter create ==="
-          find test -maxdepth 3 -type f -print 2>/dev/null || true
-
-          echo "=== Search for MyApp references ==="
-          grep -RIn "MyApp" test lib || true
-
-          echo "=== Main entry point ==="
-          sed -n '1,160p' lib/main.dart
-
-          echo "=== Android project files ==="
-          ls -la android
-          ls -la android/app
 
       - name: Install dependencies
         run: flutter pub get
